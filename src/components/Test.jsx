@@ -1,45 +1,77 @@
 // toast
 import { toast } from "react-hot-toast";
-
-import { useState } from "react";
-
+import { useReducer } from "react";
 import Result from "../components/Result";
 
+// Dastlabki holat
+const initialState = {
+  answeredQuestions: 1,
+  correctAnswerCount: 0,
+  questionIndex: 0,
+  selectedAnswer: null,
+  answerStatus: null,
+  statusDisabled: false,
+  showNextButton: false,
+};
+
+// Reducer funksiyasi
+const testReducer = (state, action) => {
+  switch (action.type) {
+    case "SELECT_ANSWER":
+      return { ...state, selectedAnswer: action.payload };
+
+    case "SUBMIT_ANSWER":
+      const correctAnswer = action.payload[state.questionIndex].answer;
+      const isCorrect = state.selectedAnswer === correctAnswer;
+      return {
+        ...state,
+        answerStatus: isCorrect ? "correct" : "incorrect",
+        correctAnswerCount: isCorrect
+          ? state.correctAnswerCount + 1
+          : state.correctAnswerCount,
+        showNextButton: true,
+        statusDisabled: true,
+      };
+
+    case "NEXT_QUESTION":
+      return {
+        ...state,
+        questionIndex: state.questionIndex + 1,
+        answeredQuestions: state.answeredQuestions + 1,
+        selectedAnswer: null,
+        showNextButton: false,
+        answerStatus: null,
+        statusDisabled: false,
+      };
+
+    default:
+      return state;
+  }
+};
+
 function Test({ questions: { questions, title, color, icon } }) {
-  const [answeredQuestions, setAnsweredQuestions] = useState(1);
-  const [correctAnswerCount, setCorrectAnswerCount] = useState(0);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [answerStatus, setAnswerStatus] = useState(null);
-  const [statusDisabeled, setStatusDisabled] = useState(false);
-  const [showNextButton, setShowNextButton] = useState(false);
+  const [state, dispatch] = useReducer(testReducer, initialState);
+
+  const {
+    answeredQuestions,
+    correctAnswerCount,
+    questionIndex,
+    selectedAnswer,
+    answerStatus,
+    statusDisabled,
+    showNextButton,
+  } = state;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const correctAnswer = questions[questionIndex].answer;
-
     if (selectedAnswer === null) {
       return toast.error("Please select an answer");
-    } else {
-      if (selectedAnswer === correctAnswer) {
-        setAnswerStatus("correct");
-        setCorrectAnswerCount(correctAnswerCount + 1);
-      } else {
-        setAnswerStatus("incorrect");
-      }
-
-      setShowNextButton(true);
-      setStatusDisabled(true);
     }
+    dispatch({ type: "SUBMIT_ANSWER", payload: questions });
   };
 
   const handleNextQuestion = () => {
-    setQuestionIndex(questionIndex + 1);
-    setAnsweredQuestions(answeredQuestions + 1);
-    setSelectedAnswer(null);
-    setShowNextButton(false);
-    setAnswerStatus(null);
-    setStatusDisabled(false);
+    dispatch({ type: "NEXT_QUESTION" });
   };
 
   if (questionIndex === questions.length) {
@@ -47,15 +79,13 @@ function Test({ questions: { questions, title, color, icon } }) {
       icon: "🎉",
     });
     return (
-      <>
-        <Result
-          title={title}
-          color={color}
-          icon={icon}
-          correctAnswerCount={correctAnswerCount}
-          questionsLenght={questions.length}
-        />
-      </>
+      <Result
+        title={title}
+        color={color}
+        icon={icon}
+        correctAnswerCount={correctAnswerCount}
+        questionsLenght={questions.length}
+      />
     );
   }
 
@@ -98,10 +128,12 @@ function Test({ questions: { questions, title, color, icon } }) {
                   <label className={`test-label ${className}`}>
                     <span className="test-letter">{alphabet}</span>
                     <input
-                      onChange={() => setSelectedAnswer(option)}
+                      onChange={() =>
+                        dispatch({ type: "SELECT_ANSWER", payload: option })
+                      }
                       type="radio"
                       name="option"
-                      disabled={statusDisabeled}
+                      disabled={statusDisabled}
                     />
                     <span className="test-text">{option}</span>
 
@@ -130,7 +162,7 @@ function Test({ questions: { questions, title, color, icon } }) {
           )}
           {showNextButton && (
             <button onClick={handleNextQuestion} className="btn test-btn">
-              {questions.length == questionIndex + 1
+              {questions.length === questionIndex + 1
                 ? "Finish"
                 : "Next Question"}
             </button>

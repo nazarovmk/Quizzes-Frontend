@@ -1,18 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { Link, useParams } from "react-router-dom";
 
 const toggleMode = () => {
   return localStorage.getItem("darkMode") || "light";
 };
 
+// reducer funksiyasi
+const themeReducer = (theme, action) => {
+  switch (action.type) {
+    case "TOGLE_MODE":
+      return theme === "dark-mode" ? "light" : "dark-mode";
+    default:
+      return theme;
+  }
+};
+
 function Navbar() {
   const { title } = useParams();
-  const [theme, setTheme] = useState(() => toggleMode());
+  const [theme, setTheme] = useReducer(themeReducer, toggleMode());
 
   const handleThemeToggle = (e) => {
     e.preventDefault();
-    const newTheme = theme === "dark-mode" ? "light" : "dark-mode";
-    setTheme(newTheme);
+    setTheme({ type: "TOGLE_MODE" });
   };
 
   useEffect(() => {
